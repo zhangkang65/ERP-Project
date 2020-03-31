@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:shiro="http://www.pollix.at/thymeleaf/shiro">
+<head>
+    <meta charset="UTF-8">
+    <title>我的待办任务</title>
+    <link rel="icon" href="/resources/favicon.ico">
+    <link rel="stylesheet" href="/resources/layui/css/layui.css" media="all" />
+    <link rel="stylesheet" href="/resources/css/public.css" media="all" />
+    <style type="text/css">
+        .process3{
+            padding:4px;
+            border:2px solid red;
+            position: absolute;
+            left:312px;
+            top: 90px;
+            width:105px;
+            height: 55px
+        }
+        .process4{
+            padding:4px;
+            border:2px solid red;
+            position: absolute;
+            left:312px;
+            top: 170px;
+            width:105px;
+            height: 55px
+        }
+        .process5{
+            padding:4px;
+            border:2px solid red;
+            position: absolute;
+            left:300px;
+            top: 260px;
+            width:130px;
+            height: 60px
+        }
+    </style>
+</head>
+<body class="childrenBody">
+
+<!-- 数据表格开始 -->
+<div style="margin:50px 100px">
+    <table class="layui-hide" id="taskTable" lay-filter="taskTable" lay-data="{id: 'taskTable'}"></table>
+</div>
+<!-- 行级工具条 -->
+<div id="rowToolBar" style="display: none;">
+    <a class="layui-btn layui-btn-xs" lay-event="completeTask">办理任务</a>
+    <a class="layui-btn layui-btn-warm layui-btn-xs" lay-event="viewTargetImg" >查看任务图</a>
+</div>
+<!-- 数据表格结束 -->
+<!--办理任务的弹出层-->
+<div id="auditQueryDiv" style="display: none;padding: 20px">
+    <form class="layui-form"  lay-filter="auditFrm" id="auditFrm">
+        <div class="layui-form-item">
+            <label class="layui-form-label">请假标题:</label>
+            <div class="layui-input-block">
+                <input type="text" name="title"autocomplete="off"
+                       class="layui-input" style="width: 510px" disabled="disabled">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">请假天数:</label>
+            <div class="layui-input-inline">
+                <input type="text" name="days" disabled="disabled" lay-verify="required|number"autocomplete="off"
+                       class="layui-input">
+            </div>
+            <label class="layui-form-label" style="margin-left: 10px">开始时间:</label>
+            <div class="layui-input-inline">
+                <input type="text" disabled="disabled" name="leavetime" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">请假原因:</label>
+            <textarea name="content" style="width: 510px" class="layui-textarea" disabled="disabled"></textarea>
+        </div>
+    </form>
+    <form class="layui-form"  lay-filter="commentForm" id="commentForm">
+        <div class="layui-form-item">
+            <label class="layui-form-label" >批&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;注:</label>
+            <textarea name="comment" id="comment" style="width: 510px" class="layui-textarea"></textarea>
+        </div>
+        <div class="layui-form-item" style="margin:10px 130px">
+            <div class="layui-input-block">
+                <button type="button" class="layui-btn layui-btn-normal layui-btn-sm layui-icon layui-icon-ok" id="doA"></button>
+                <button type="reset" class="layui-btn layui-btn-warm layui-btn-sm layui-icon layui-icon-close" id="doB"></button>
+            </div>
+        </div>
+    </form>
+
+    <!--审批内容表格-->
+    <div style="margin-left:30px">
+        <table class="layui-hide" id="auditTable" lay-filter="auditTable" lay-data="{id: 'auditTable'}"></table>
+    </div>
+
+</div>
+
+<!-- 查看流程图的弹出层开始 -->
+<div id="viewTaskImg" style="display: none;padding:10px 0 0">
+    <div align="center">
+        <img id="processImg"/>
+    </div>
+    <div id="processImgBorder">
+
+    </div>
+</div>
+<!-- 查看流程图的弹出层结束 -->
+<script src="/resources/layui/layui.js"></script>
+<script type="text/javascript">
+    var tableIns;
+    var index;
+    layui.use([ 'jquery', 'layer', 'form','table'], function() {
+        var $ = layui.jquery;
+        var layer = layui.layer;
+        var form = layui.form;
+        var table = layui.table;
+
+        var data;
+        var taskId;
+        var leavebillId;
+        //渲染数据表格
+        tableIns = table.render({
+            elem : '#taskTable', //渲染的目标对象
+            url : '/sys/task/loadTask', //数据接口
+            title : '任务数据表',//数据导出来的标题
+            defaultToolbar : [ 'filter','exports','print' ],
+            width:'1110',
+            height : 'full-130',
+            cellMinWidth : 100, //设置列的最小默认宽度
+            done : function(res, curr, count) {
+                if(res.data.length==0&&curr!=1){
+                    tableIns.reload({
+                        page:{
+                            curr:curr-1
+                        }
+                    })
+                }
+            },
+
+            totalRow : false, //开启合并行
+            page : true, //是否启用分页
+            text : {
+                none : '暂无相关数据' //默认：无数据。注：该属性为 layui 2.2.5 开始新增
+            },
+            cols : [ [ //列表数据
+                {field:'id',title:'任务ID',align:'center',width:'164'},
+                {field :'name',title:'任务名称',align : 'center',width:'300'},
+                {field : 'createTime',title : '创建时间',align : 'center',width:'220'},
+                {field : 'assigneeName',title : '办理人',align:'center',width:'180'},
+                {fixed : 'right',title : '操作',toolbar:'#rowToolBar',width :'240',align:'center'}
+            ] ]
+        });
+
+        //监听行工具事件
+        table.on('tool(taskTable)', function(obj){
+            data = obj.data; //获得当前行数据
+            taskId = data.id;
+            var layEvent = obj.event; //获得 lay-event 对应的值（也可以是表头的 event 参数对应的值）
+            if(layEvent === 'completeTask'){ //办理任务
+                openCompleteTask(data);
+            } else if(layEvent === 'viewTargetImg'){ //查看任务图
+                openTaskImg(data);
+            }
+        });
+
+        function openCompleteTask(data){
+            index = layer.open({
+                type:1,
+                title:'任务办理',
+                content:$("#auditQueryDiv"),
+                area:['700px','500px'],
+                success:function(index){
+                    $.post("/sys/task/getLeavelbillByTaskId?id="+data.id,function(result){
+                        var leavebill = result.data.leavebill;
+                        var outcomes = result.data.outcomes;
+                        var comments = result.data.comments;
+                        leavebillId = leavebill.id;
+                        //1.渲染业务数据-->通过任务的流程实例id获取请假单数据
+                        form.val("auditFrm",leavebill);
+                        //2.渲染弹框按钮value值-->获取当前办理的Task接下来连线的值
+                        $("#doA").text(outcomes[0]);
+                        $("#doB").text(outcomes[1]);
+                        //3.渲染该Task的历史批注信息
+                        commentTableRender(comments);
+                    })
+                }
+            });
+        }
+        function commentTableRender(data){
+            if(data.length>0){
+                //渲染数据表格
+                tableIns = table.render({
+                    elem : '#auditTable', //渲染的目标对象
+                    data :data,
+                    cols : [ [ //列表数据
+                        {field:'time',title:'批注时间',align:'center'},
+                        {field :'userName',title:'批注人',align : 'center'},
+                        {field : 'message',title : '批注内容',align : 'center'},
+                    ] ]
+                });
+            }
+        }
+        function openTaskImg(data){
+            layer.open({
+                type:1,
+                title:'任务流程图',
+                content:$("#viewTaskImg"),
+                area:['700px','500px'],
+                success:function(index){
+                    var src = "/sys/task/viewProcessImgByTaskid?taskId="+data.id;
+                    $("#processImg").attr({ src:src, alt: "流程图" });
+                    $.get("/sys/task/getprocessImgBorder?taskId="+data.id,function(result){
+                        if(result=='_3'){
+                            $("#processImgBorder").addClass("process3");
+                        }else if(result=='_4'){
+                            $("#processImgBorder").addClass("process4");
+                        }else if(result=='_5'){
+                            $("#processImgBorder").addClass("process5");
+                        }
+                    });
+                }
+            });
+        }
+        $("#doA").click(function(){
+            doComplete(this);
+            window.parent.location.reload();
+        })
+        $("#doB").click(function(){
+            doComplete(this)
+            window.parent.location.reload();
+        })
+        function doComplete(obj){
+            var comment = $("#comment").val();
+            var outcome = $(obj).text();
+            var url="/sys/task/completeTask?taskId="+taskId+"&outcome="+outcome+"&leavebillId="+leavebillId;
+            if(comment!=null &&comment!=''){
+                url+="&comment="+comment
+            }
+            $.get(url,function(result){
+                layer.msg(result.msg);
+                layer.close(index);
+            })
+        }
+
+    });
+
+</script>
+
+</body>
+</html>

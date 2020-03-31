@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html class="loginHtml">
+<head>
+    <meta charset="utf-8">
+    <title>登录--Y·F仓储管理系统 </title>
+    <link rel="icon" href="/resources/favicon.ico">
+    <link rel="stylesheet" href="/resources/layui/css/layui.css"/>
+    <link rel="stylesheet" href="/resources/css/public.css"/>
+</head>
+<body class="loginBody">
+<form class="layui-form" method="post">
+    <div class="login_face"><img src="/resources/images/icon.jpg" class="userAvatar"></div>
+    <div class="layui-form-item input-item">
+        <label for="loginname">用户名</label>
+        <input type="text" placeholder="请输入用户名" name="loginname" autocomplete="off" id="loginname" class="layui-input" lay-verify="required">
+    </div>
+    <div class="layui-form-item input-item">
+        <label for="pwd">密码</label>
+        <input type="password" placeholder="请输入密码" name="pwd"autocomplete="off" id="pwd" class="layui-input" lay-verify="required">
+    </div>
+    <div class="layui-form-item input-item" id="imgCode">
+        <label for="validation">验证码</label>
+        <input type="text" placeholder="请输入验证码" autocomplete="off" id="validation" name="validation" class="layui-input">
+        <img src="/login/getValidation"  onclick="this.src=this.src+'?'">
+    </div>
+    <div class="layui-form-item">
+        <button class="layui-btn layui-block" lay-filter="login" lay-submit>登录</button>
+    </div>
+
+</form>
+<script type="text/javascript" src="/resources/layui/layui.js"></script>
+<script type="text/javascript">
+    layui.use(['form','layer','jquery'],function(){
+        var form = layui.form;
+        var layer = parent.layer === undefined ? layui.layer : top.layer;
+        var $ = layui.jquery;
+
+        //登录按钮
+        //登录按钮
+        form.on("submit(login)", function (data) {
+            var btn = $(this);
+            //设置登录按钮为不可点击
+            btn.text("登录中...").attr("disabled", "disabled").addClass("layui-disabled");
+            $.post("/login/login",data.field,function(result){
+                //设置登录按钮 恢复可点击   在前端防止 重复点击
+                btn.text("登录").attr("disabled",false).removeClass("layui-disabled");
+
+                layer.msg(result.msg);
+                //异步请求,就不需要数据回显操作了,原本的数据不会丢失
+                //登录成功后页面跳转
+                if(result.code >0){
+                    //重定向到list页面
+                    location.href="/index/toIndex"
+                }
+            });
+            return false;
+        })
+
+        //表单输入效果
+        $(".loginBody .input-item").click(function(e){
+            e.stopPropagation();
+            $(this).addClass("layui-input-focus").find(".layui-input").focus();
+        })
+        $(".loginBody .layui-form-item .layui-input").focus(function(){
+            $(this).parent().addClass("layui-input-focus");
+        })
+        $(".loginBody .layui-form-item .layui-input").blur(function(){
+            $(this).parent().removeClass("layui-input-focus");
+            if($(this).val() != ''){
+                $(this).parent().addClass("layui-input-active");
+            }else{
+                $(this).parent().removeClass("layui-input-active");
+            }
+        })
+    })
+
+</script>
+<script type="text/javascript" src="/resources/js/cache.js"></script>
+</body>
+</html>

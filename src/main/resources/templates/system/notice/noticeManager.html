@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:shiro="http://www.pollix.at/thymeleaf/shiro">
+<head>
+    <meta charset="UTF-8">
+    <title>公告管理</title>
+    <link rel="icon" href="/resources/favicon.ico">
+    <link rel="stylesheet" href="/resources/layui/css/layui.css" media="all" />
+    <link rel="stylesheet" href="/resources/css/public.css" media="all" />
+</head>
+<body class="childrenBody">
+<!-- 搜索条件开始 -->
+<form class="layui-form" method="post" id="searchForm"style="margin:0 300px" shiro:hasPermission="netice:view">
+    <div class="layui-form-item">
+        <div class="layui-inline">
+            <label class="layui-form-label">公告标题:</label>
+            <div class="layui-input-inline">
+                <input type="text" name="title"  autocomplete="off" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-inline">
+            <label class="layui-form-label">公告内容:</label>
+            <div class="layui-input-inline">
+                <input type="text" name="content"  autocomplete="off" class="layui-input">
+            </div>
+        </div>
+    </div>
+    <div class="layui-form-item">
+        <div class="layui-inline">
+            <label class="layui-form-label">开始时间:</label>
+            <div class="layui-input-inline">
+                <input type="text" class="layui-input" id="begintime" name="begintime" placeholder=" - ">
+            </div>
+        </div>
+        <div class="layui-inline">
+            <label class="layui-form-label">结束时间:</label>
+            <div class="layui-input-inline">
+                <input type="text" class="layui-input" id="endtime"  name="endtime" placeholder=" - ">
+            </div>
+        </div>
+    </div>
+    <div class="layui-form-item" style="margin-left:240px">
+        <div class="layui-inline">
+            <button type="button" lay-submit="" lay-filter="doSearch" class="layui-btn layui-btn-normal layui-btn-radius layui-icon layui-icon-search" id="doSearch">查询</button>
+            <button type="reset" class="layui-btn layui-btn-warm layui-btn-radius layui-icon layui-icon-refresh">重置</button>
+        </div>
+    </div>
+</form>
+<!-- 搜索条件结束 -->
+
+
+<!-- 数据表格开始 -->
+<div style="margin-left:160px" shiro:hasPermission="notice:view">
+    <table class="layui-hide" id="noticeTable" lay-filter="noticeTable" lay-data="{id: 'noticeTable'}"></table>
+</div>
+<!--表格工具条-->
+<div style="display: none;" id="tableToolBar">
+    <button type="button" class="layui-btn layui-btn-sm" lay-event="add" shiro:hasPermission="notice:create">
+        <i class="layui-icon">&#xe608;</i> 添加
+    </button>
+    <button type="button" class="layui-btn layui-btn-sm layui-btn-danger" lay-event="batchDelete" shiro:hasPermission="notice:delete">
+        <i class="layui-icon">&#xe640;</i> 批量删除
+    </button>
+</div>
+<!-- 行级工具条 -->
+<div id="rowToolBar" style="display: none;">
+    <a class="layui-btn layui-btn-xs" lay-event="edit" shiro:hasPermission="notice:update">编辑</a>
+    <a class="layui-btn layui-btn-warm layui-btn-xs" lay-event="detail"  shiro:hasPermission="notice:view">查看</a>
+    <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="del"  shiro:hasPermission="notice:delete">删除</a>
+</div>
+<!-- 数据表格结束 -->
+
+<!-- 添加和修改的弹出层开始 -->
+<div style="display: none;padding: 20px 20px 0 20px" id="saveOrUpdateDiv" >
+    <form class="layui-form"  lay-filter="dataFrm" id="dataFrm">
+        <div class="layui-form-item">
+            <label class="layui-form-label">公告标题:</label>
+            <div class="layui-input-block">
+                <input type="hidden" name="id">
+                <input type="text" name="title"  placeholder="请输入公告标题" autocomplete="off"
+                       class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <textarea id="content" name="content" style="display: none;"></textarea>
+        </div>
+        <div class="layui-form-item" style="margin:10px 200px">
+            <div class="layui-input-block">
+                <button type="button" class="layui-btn layui-btn-normal layui-btn-sm layui-icon layui-icon-release" lay-submit lay-filter="doSubmit">提交</button>
+                <button type="reset" class="layui-btn layui-btn-warm layui-btn-sm layui-icon layui-icon-refresh" id="dataFrmResetBtn">重置</button>
+            </div>
+        </div>
+    </form>
+
+</div>
+<!-- 添加和修改的弹出层结束 -->
+<!-- 查看公告信息的弹出层开始 -->
+<div id="NoticeDetailDiv" style="display: none;padding: 20px">
+    <h2 id="view_title" align="center"></h2>
+    <hr>
+    <div style="text-align: right;color:#393D49">
+        发布人:<span id="view_opername"></span>  <span style="display: inline-block;width: 20px" ></span>
+        发布时间:<span id="view_createtime"></span>
+    </div>
+    <hr>
+    <div id="view_content" style="font-size:14px;"></div>
+</div>
+<!-- 查看公告信息的弹出层结束 -->
+<script src="/resources/layui/layui.js"></script>
+<script type="text/javascript">
+    var tableIns;
+    layui.use([ 'jquery', 'layer', 'form','table','layedit','laydate'], function() {
+        var $ = layui.jquery;
+        var layer = layui.layer;
+        var form = layui.form;
+        var table = layui.table;
+        var layedit = layui.layedit;
+        var laydate = layui.laydate;
+
+        //渲染编辑器
+        var index;
+        //渲染数据表格
+        tableIns = table.render({
+            elem : '#noticeTable', //渲染的目标对象
+            url : '/sys/notice/loadNotice', //数据接口
+            title : '公告数据表',//数据导出来的标题
+            toolbar : "#tableToolBar", //表格的工具条
+            defaultToolbar : [ 'filter','exports','print' ],
+            width:'1000',
+            height : 'full-195',
+            cellMinWidth : 100, //设置列的最小默认宽度
+            done : function(res, curr, count) {
+                if(res.data.length==0&&curr!=1){
+                    tableIns.reload({
+                        page:{
+                            curr:curr-1
+                        }
+                    })
+                }
+            },
+
+            totalRow : false, //开启合并行
+            page : true, //是否启用分页
+            text : {
+                none : '暂无相关数据' //默认：无数据。注：该属性为 layui 2.2.5 开始新增
+            },
+            cols : [ [ //列表数据
+                {type : 'checkbox',fixed : 'left'},
+                {field:'id',title:'ID',align:'center',width:'50'},
+                {field :'title',title:'标题',align : 'center',width:'300'},
+                {field :'content',title:'内容',align : 'center',width:'300',hide : 'true'},
+                {field : 'createtime',title : '发布时间',align : 'center',width:'200'},
+                {field : 'opername',title : '发布人',align:'center',width:'150'},
+                {fixed : 'right',title : '操作',toolbar:'#rowToolBar',width :'245',align:'center'}
+            ] ]
+        });
+        laydate.render({
+            elem: '#begintime'
+            ,type: 'datetime'
+        });
+        laydate.render({
+            elem: '#endime'
+            ,type: 'datetime'
+            ,max:1
+        });
+
+        //模糊查询
+        form.on("submit(doSearch)", function (data) {
+            tableIns.reload({
+                where: data.field,
+                page: {
+                    curr: 1
+                }
+            });
+            return false;
+        });
+
+        //监听头部工具栏事件
+        table.on("toolbar(noticeTable)",function(obj){
+            switch(obj.event){
+                case 'add':
+                    openAddNotice();
+                    break;
+                case 'batchDelete':
+                    batchDeleteNotice();
+                    break;
+            };
+        })
+
+        //监听行工具事件
+        table.on('tool(noticeTable)', function(obj){
+            var data = obj.data; //获得当前行数据
+            var layEvent = obj.event; //获得 lay-event 对应的值（也可以是表头的 event 参数对应的值）
+            if(layEvent === 'del'){ //删除
+                deleteSingleNotice(data);
+            } else if(layEvent === 'edit'){ //编辑
+                openUpdateNotice(data);
+            }else if(layEvent ==='detail'){
+                openNoticeDetail(data);
+            }
+        });
+
+        $("#dataFrmResetBtn").click(function(){
+            layedit.setContent(index,"");
+        });
+
+        //清空编辑器内容
+        function resetLayEdit(){
+            //渲染编辑器需要打开编辑器后才进行渲染
+            index = layedit.build('content', {
+                height: 277//设置编辑器高度
+            });
+            layedit.setContent(index,"");
+        }
+
+        //初始化编辑器内容
+        function initLayEdit(data){
+            index = layedit.build('content', {
+                height: 277//设置编辑器高度
+            });
+            layedit.setContent(index,data);
+        }
+
+        var url;
+        var mainIndex;
+        //打开添加页面
+        function openAddNotice(){
+            mainIndex = layer.open({
+                type:1,
+                title:'添加公告',
+                content:$("#saveOrUpdateDiv"),
+                area:['800px','500px'],
+                success:function(index){
+                    //清空修改页面使用过的表单数据
+                    $("#dataFrm")[0].reset();
+                    resetLayEdit();
+                    //为弹框中表单提交传递提交地址
+                    url="/sys/notice/addNotice"
+                }
+            });
+        }
+
+        //打开修改页面
+        function openUpdateNotice(data){
+            mainIndex=layer.open({
+                type:1,
+                title:'修改公告',
+                content:$("#saveOrUpdateDiv"),
+                area:['800px','500px'],
+                success:function(index){
+
+                    form.val("dataFrm",data);
+                    initLayEdit(data.content);
+                    url="/sys/notice/updateNotice";
+                }
+            });
+        }
+
+        //打开查看弹窗页面
+        function openNoticeDetail(data){
+            mainIndex=layer.open({
+                type:1,
+                title:'查看公告',
+                content:$("#NoticeDetailDiv"),
+                area:['600px','500px'],
+                success:function(index){
+                    $("#view_title").text(data.title);
+                    $("#view_createtime").text(data.createtime);
+                    $("#view_opername").text(data.opername);
+                    $("#view_content").html(data.content);
+                }
+            });
+        }
+
+        //表单提交数据
+        form.on("submit(doSubmit)",function(result){
+            layedit.sync(index);
+            //序列化表单数据
+            var formData=$("#dataFrm").serialize();
+            $.post(url,formData,function(result){
+                //弹出操作情况数据msg-->封装数据处理请求返回的信息
+                var code = result.code;
+                var msg = result.msg;
+                if(code>0){
+                    layer.close(mainIndex);
+                    layer.alert(result.msg, {
+                        icon: 1
+                    });
+                    tableIns.reload();
+                }else{
+                    layer.alert(result.msg, {
+                        icon: 0
+                    });
+                }
+            })
+
+
+        })
+
+        //删除单个公告
+        function deleteSingleNotice(data){
+            var url = "/sys/notice/deleteSingleNotice";
+            layer.confirm('确认删除['+data.title+']公告吗？', function(index){
+                $.post(url,data,function(result){
+                    if(result.code>0){
+                        layer.alert(result.msg,{
+                            icon:1
+                        });
+                        tableIns.reload();
+                    }else{
+                        layer.alert(result.msg,{
+                            icon:0
+                        });
+                    }
+                });
+            });
+        }
+
+        //批量删除公告-->传Noticeids过去-->联想复选框传一个name对应多个值
+        function batchDeleteNotice(){
+            var checkStatus = table.checkStatus('noticeTable');
+            var data = checkStatus.data;
+            var params = "";
+            $.each(data,function(i,e){
+                if(i==0){
+                    params+="ids="+e.id;
+                }else{
+                    params+="&ids="+e.id;
+                }
+            });
+            layer.confirm("真的要删除选中的这些公告吗?",function(){
+                $.post("/sys/notice/deleteBatchNotice",params,function(result){
+                    if(result.code>0){
+                        layer.alert(result.msg,{
+                            icon:1
+                        });
+                    }else{
+                        layer.alert(result.msg,{
+                            icon:0
+                        });
+                    }
+                    //刷新数据表格
+                    tableIns.reload();
+                });
+            });
+        }
+
+    });
+
+</script>
+
+</body>
+</html>

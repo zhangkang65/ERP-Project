@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>菜单管理</title>
+        <link rel="icon" href="/resources/favicon.ico">
+        <link rel="stylesheet" href="/resources/layui/css/layui.css" media="all"/>
+        <link rel="stylesheet" href="/resources/css/public.css" media="all"/>
+        <link rel="stylesheet" href="/resources/layui_ext/dtree/dtree.css">
+        <link rel="stylesheet" href="/resources/layui_ext/dtree/font/dtreefont.css">
+    </head>
+    <body>
+        <ul id="menuTree" class="dtree" data-id="0"></ul>
+        <script type="text/javascript" src="/resources/layui/layui.js"></script>
+        <script type="text/javascript">
+            layui.extend({
+                dtree: '/resources/layui_ext/dist/dtree'
+            }).use(['jquery', 'layer', 'form', 'dtree'], function () {
+                var $ = layui.jquery;
+                var layer = layui.layer;
+                var form = layui.form;
+                var dtree = layui.dtree;
+                // 初始化树
+                var menuTree = dtree.render({
+                    elem: "#menuTree",
+                    method: "GET",
+                    dataStyle: "layuiStyle",  //使用layui风格的数据格式
+                    icon: "3",
+                    response: {message: "msg", statusCode: 0},  //修改response中返回数据的定义
+                    dataFormat: "list",  //配置data的风格为list
+                    url: "/sys/menu/loadMenuManagerLeftTreeJson" // 使用url加载（可与data加载同时存在）
+                });
+
+                //监听树的节点单击事件
+                dtree.on("node('menuTree')", function (obj) {
+                    //获取单击的节点的id参数
+                    var id = obj.param.nodeId; // 点击当前节点传递的参数
+                    //将左侧菜单的参数通过父页面获取到右页面并调用右页面方法,将此参数传递过去
+                    window.parent.right.reloadMenuList(id);
+                });
+            })
+        </script>
+
+    </body>
+</html>

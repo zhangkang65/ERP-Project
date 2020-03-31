@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:shiro="http://www.pollix.at/thymeleaf/shiro">
+<head>
+    <meta charset="UTF-8">
+    <title>我的待办任务</title>
+    <link rel="icon" href="/resources/favicon.ico">
+    <link rel="stylesheet" href="/resources/layui/css/layui.css" media="all" />
+    <link rel="stylesheet" href="/resources/css/public.css" media="all" />
+</head>
+<body class="childrenBody">
+
+<!-- 数据表格开始 -->
+<div style="margin:50px 100px">
+    <table class="layui-hide" id="auditTable" lay-filter="auditTable" lay-data="{id: 'auditTable'}"></table>
+</div>
+<!-- 数据表格结束 -->
+<script src="/resources/layui/layui.js"></script>
+<script type="text/javascript">
+    var tableIns;
+    var index;
+    layui.use([ 'jquery', 'layer', 'form','table'], function() {
+        var $ = layui.jquery;
+        var layer = layui.layer;
+        var form = layui.form;
+        var table = layui.table;
+
+        //渲染数据表格
+        tableIns = table.render({
+            elem : '#auditTable', //渲染的目标对象
+            url : '/sys/task/loadAuditInfo', //数据接口
+            title : '审核数据表',//数据导出来的标题
+            defaultToolbar : [ 'filter','exports','print' ],
+            width:'1110',
+            height : 'full-130',
+            cellMinWidth : 100, //设置列的最小默认宽度
+            done : function(res, curr, count) {
+                if(res.data.length==0&&curr!=1){
+                    tableIns.reload({
+                        page:{
+                            curr:curr-1
+                        }
+                    })
+                }
+            },
+
+            totalRow : false, //开启合并行
+            page : true, //是否启用分页
+            text : {
+                none : '暂无相关数据' //默认：无数据。注：该属性为 layui 2.2.5 开始新增
+            },
+            cols : [ [ //列表数据
+                {field :'auditSomething',title:'审核事件',align : 'center'},
+                {field : 'auditComment',title : '审核批注',align : 'center'},
+                {field : 'auditDate',title : '审核时间',align:'center'},
+            ] ]
+        });
+
+    });
+
+</script>
+
+</body>
+</html>

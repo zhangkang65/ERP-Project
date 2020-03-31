@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:shiro="http://www.pollix.at/thymeleaf/shiro">
+    <head>
+        <meta charset="UTF-8">
+        <title>Title</title>
+        <link rel="icon" href="/resources/favicon.ico">
+        <link rel="stylesheet" href="/resources/layui/css/layui.css" media="all"/>
+        <link rel="stylesheet" href="/resources/css/public.css" media="all"/>
+        <link rel="stylesheet" href="/resources/layui_ext/dtree/dtree.css">
+        <link rel="stylesheet" href="/resources/layui_ext/dtree/font/dtreefont.css">
+        <style type="text/css">
+            .select-test {
+                position: absolute;
+                max-height: 500px;
+                height: 350px;
+                overflow: auto;
+                width: 100%;
+                z-index: 123;
+                display: none;
+                border: 1px solid silver;
+                top: 42px;
+            }
+
+            .layui-show {
+                display: block !important;
+            }
+        </style>
+    </head>
+    <body class="childrenBody" style="margin:10px;">
+        <!-- 搜索条件开始 -->
+        <form class="layui-form" method="post" id="searchForm" shiro:hasPermission="permission:view">
+            <div class="layui-form-item">
+                <div class="layui-inline">
+                    <label class="layui-form-label">权限名称:</label>
+                    <div class="layui-input-inline">
+                        <input type="text" name="title" autocomplete="off" class="layui-input">
+                    </div>
+                    <label class="layui-form-label">权限编码:</label>
+                    <div class="layui-input-inline">
+                        <input type="text" name="percode" autocomplete="off" class="layui-input">
+                    </div>
+                </div>
+                <div class="layui-inline">
+                    <button type="button" lay-submit="" lay-filter="doSearch"
+                            class="layui-btn layui-btn-normal layui-btn-radius layui-icon layui-icon-search"
+                            id="doSearch">查询
+                    </button>
+                    <button type="reset"
+                            class="layui-btn layui-btn-warm layui-btn-radius layui-icon layui-icon-refresh">重置
+                    </button>
+                </div>
+            </div>
+        </form>
+
+
+        <!-- 搜索条件结束 -->
+
+
+        <!-- 数据表格开始 -->
+        <table class="layui-hide" id="permissionTable" lay-filter="permissionTable"></table>
+        <!--表格工具条-->
+        <div style="display: none;" id="tableToolBar">
+            <button type="button" class="layui-btn layui-btn-sm" lay-event="add" shiro:hasPermission="permission:create">
+                <i class="layui-icon">&#xe608;</i>
+                添加
+            </button>
+        </div>
+        <!-- 行级工具条 -->
+        <div id="rowToolBar" style="display: none;">
+            <a class="layui-btn layui-btn-xs" lay-event="edit" shiro:hasPermission="permission:update">编辑</a>
+            <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="del" shiro:hasPermission="permission:delete">删除</a>
+        </div>
+        <!-- 数据表格结束 -->
+
+        <!-- 添加和修改的弹出层开始 -->
+        <div style="display: none;padding: 20px" id="saveOrUpdateDiv">
+            <form class="layui-form" lay-filter="dataFrm" id="dataFrm">
+                <div class="layui-form-item">
+                    <label class="layui-form-label">所属菜单：</label>
+                    <div class="layui-input-block">
+                        <div class="layui-unselect layui-form-select" id="pid_div">
+                            <div class="layui-select-title">
+                                <input type="hidden" name="id" id="id">
+                                <input type="text" name="pid_str" id="pid_str" lay-verify="required" placeholder="请选择"
+                                       readonly="" class="layui-input layui-unselect">
+                                <i class="layui-edge"></i>
+                            </div>
+                        </div>
+                        <div class="layui-card select-test" id="permissionSelectDiv">
+                            <div class="layui-card-body">
+                                <div id="toolbarDiv">
+                                    <ul id="menuTree" class="dtree" data-id="0" style="width: 100%;"></ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label">权限名称:</label>
+                    <div class="layui-input-block">
+                        <input type="hidden" name="id">
+                        <input type="text" name="title" lay-verify="required" placeholder="请输入权限名称名称" autocomplete="off"
+                               class="layui-input">
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label">权限编码:</label>
+                    <div class="layui-input-block">
+                        <input type="text" name="percode" lay-verify="required" placeholder="请输入权限编码" autocomplete="off"
+                               class="layui-input">
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <div class="layui-inline">
+                        <label class="layui-form-label">排序码数:</label>
+                        <div class="layui-input-block">
+                            <input type="text" name="ordernum" placeholder="请输入排序码数" autocomplete="off"
+                                   class="layui-input">
+                        </div>
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <div class="layui-inline">
+                        <label class="layui-form-label">是否可用:</label>
+                        <div class="layui-input-block">
+                            <input type="radio" name="available" value="1" checked="checked" title="可用">
+                            <input type="radio" name="available" value="0" title="不可">
+                        </div>
+                    </div>
+                </div>
+                <div class="layui-form-item" style="margin:10px 200px">
+                    <div class="layui-input-block">
+                        <button type="button"
+                                class="layui-btn layui-btn-normal layui-btn-sm layui-icon layui-icon-release" lay-submit
+                                lay-filter="doSubmit">提交
+                        </button>
+                        <button type="reset"
+                                class="layui-btn layui-btn-warm layui-btn-sm layui-icon layui-icon-refresh">重置
+                        </button>
+                    </div>
+                </div>
+            </form>
+
+        </div>
+        <!-- 添加和修改的弹出层结束 -->
+
+        <script src="/resources/layui/layui.js"></script>
+        <script type="text/javascript">
+            var tableIns;
+            var menuTree;
+            layui.extend({
+                dtree: '/resources/layui_ext/dist/dtree'
+            }).use(['jquery', 'layer', 'form', 'dtree', 'table'], function () {
+                var $ = layui.jquery;
+                var layer = layui.layer;
+                var form = layui.form;
+                var dtree = layui.dtree;
+                var table = layui.table;
+
+                //渲染数据表格
+                tableIns = table.render({
+                    elem: '#permissionTable', //渲染的目标对象
+                    url: '/sys/permission/loadPermissionManagerRightData', //数据接口
+                    title: '菜单数据表',//数据导出来的标题
+                    toolbar: "#tableToolBar", //表格的工具条
+                    defaultToolbar: ['filter', 'exports', 'print'],
+                    height: 'full-103',
+                    cellMinWidth: 100, //设置列的最小默认宽度
+                    done: function (res, curr, count) {
+                        if (res.data.length == 0 && curr != 1) {
+                            tableIns.reload({
+                                page: {
+                                    curr: curr - 1
+                                }
+                            })
+                        }
+                    },
+
+                    totalRow: false, //开启合并行
+                    page: true, //是否启用分页
+                    limit:9,
+                    text: {
+                        none: '暂无相关数据' //默认：无数据。注：该属性为 layui 2.2.5 开始新增
+                    },
+                    cols: [ [ //列表数据
+                        {type : 'checkbox',fixed : 'left'},
+                        {field: 'id', title: 'ID', align: 'center', width: '50'},
+                        {field: 'pid', title: '菜单ID', align: 'center', width: '100'},
+                        {field: 'title', title: '权限名称', align: 'center', width: '230'},
+                        {field: 'percode', title: '权限编码', align: 'center', width: '259'},
+                        {field: 'ordernum', title: '排序编码', align: 'center', width: '100'},
+                        {
+                            field: 'available', title: '是否可用', align: 'center', width: '90',
+                            templet: function (d) {
+                                return d.available == '1' ? '<font color=blue>可用</font>' : '<font color=red>不可用</font>';
+                            }
+                        },
+                        {fixed: 'right', title: '操作', toolbar: '#rowToolBar', width: '148', align: 'center'}
+                    ] ]
+                });
+
+                //模糊查询
+                form.on("submit(doSearch)", function (data) {
+                    tableIns.reload({
+                        where: data.field,
+                        page: {
+                            curr: 1
+                        }
+                    });
+                    return false;
+                });
+
+                //初始化添加和修改页面的对应菜单下拉树
+                var menuTree = dtree.render({
+                    elem: "#menuTree",
+                    dataStyle: "layuiStyle",  //使用layui风格的数据格式
+                    response: {message: "msg", statusCode: 0},  //修改response中返回数据的定义
+                    dataFormat: "list",  //配置data的风格为list
+                    url: "/sys/menu/loadMenuManagerLeftTreeJson",  // 使用url加载（可与data加载同时存在）
+                    icon: "3",
+                    accordion: true
+                });
+                $("#pid_div").on("click", function () {
+                    $(this).toggleClass("layui-form-selected");
+                    $("#permissionSelectDiv").toggleClass("layui-show layui-anim layui-anim-upbit");
+                });
+                dtree.on("node(menuTree)", function (obj) {
+                    $("#pid_str").val(obj.param.context);
+                    $("#pid").val(obj.param.nodeId);
+                    $("#pid_div").toggleClass("layui-form-selected");
+                    $("#permissionSelectDiv").toggleClass("layui-show layui-anim layui-anim-upbit");
+                });
+
+
+                //监听头部工具栏事件
+                table.on("toolbar(permissionTable)", function (obj) {
+                    switch (obj.event) {
+                        case 'add':
+                            openAddPermission();
+                            break;
+                    }
+                    ;
+                })
+
+                var url;
+                var mainIndex;
+
+                //打开添加页面
+                function openAddPermission() {
+                    mainIndex = layer.open({
+                        type: 1,
+                        title: '添加菜单',
+                        content: $("#saveOrUpdateDiv"),
+                        area: ['800px', '410px'],
+                        success: function (index) {
+                            //清空修改页面使用过的表单数据
+                            $("#dataFrm")[0].reset();
+                            //隐藏下拉树
+                            $().removeClass("layui-show");
+                            //为弹框中表单提交传递提交地址
+                            url = "/sys/permission/addPermission"
+                        }
+                    });
+                }
+
+
+                //打开修改页面
+                function openUpdatePermission(data) {
+                    mainIndex = layer.open({
+                        type: 1,
+                        title: '修改菜单',
+                        content: $("#saveOrUpdateDiv"),
+                        area: ['800px', '410px'],
+                        success: function (index) {
+                            form.val("dataFrm", data);
+                            url = "/sys/permission/updatePermission";
+                            if (data.id > 1) {
+                                //反选下拉树
+                                var pid = data.pid;
+                                var params = dtree.dataInit("menuTree", pid);
+                                //移除打开的样式
+                                $("#permissionSelectDiv").removeClass("layui-show");
+                                //给下拉框的text框赋值
+                                $("#pid_str").val(params.context);
+                            }
+                        }
+                    });
+                }
+
+                //表单提交数据
+                form.on("submit(doSubmit)", function (result) {
+                    //序列化表单数据
+                    var formData = $("#dataFrm").serialize();
+                    $.post(url, formData, function (result) {
+                        //弹出操作情况数据msg-->封装数据处理请求返回的信息
+                        var code = result.code;
+                        var msg = result.msg;
+                        if (code > 0) {
+                            layer.confirm(msg, {
+                                btn: ['确定'] //按钮
+                            }, function () {
+                                //关闭保存和修改的弹出层
+                                layer.close(mainIndex);
+                                parent.location.reload();//刷新父级页
+                            });
+                            //删除错误弹窗提醒,并不进行操作窗口关闭
+                        } else {
+                            layer.alert(result.msg, {
+                                icon: 0
+                            })
+                        }
+                    })
+
+
+                })
+
+                //删除单个菜单
+                function deleteOnePermission(data) {
+                    var url = "/sys/permission/deleteSinglePermission";
+                    layer.confirm('确认删除[' + data.title + ']菜单吗？', function (index) {
+                        $.post(url, data, function (result) {
+                            var t = layer.confirm(result.msg, {
+                                btn: ['确定'] //按钮
+                            }, function () {
+                                if(result.msg !="此菜单有子菜单,不可对其进行删除!"){
+                                    parent.location.reload();//刷新父级页
+                                }
+                                layer.close(t);
+                            });
+                        });
+                    })
+                }
+
+                //监听行工具事件
+                table.on('tool(permissionTable)', function (obj) {
+                    var data = obj.data; //获得当前行数据
+                    var layEvent = obj.event; //获得 lay-event 对应的值（也可以是表头的 event 参数对应的值）
+                    if (layEvent === 'del') { //删除
+                        deleteOnePermission(data);
+                    } else if (layEvent === 'edit') { //编辑
+                        openUpdatePermission(data);
+                    }
+                });
+
+
+            });
+
+            //单击左侧树节点,重载右侧的菜单列表
+            function reloadMenuList(id) {
+                tableIns.reload({
+                    url: "/sys/permission/loadPermissionManagerRightData?id=" + id
+                })
+            };
+
+
+        </script>
+    </body>
+</html>

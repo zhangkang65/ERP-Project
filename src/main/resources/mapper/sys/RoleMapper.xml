@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dy.sys.mapper.RoleMapper">
+    <!--根据角色id查询权限-->
+    <select id="listPermissionByRoleid" resultType="com.dy.sys.entity.Permission">
+        select p.*
+        from sys_permission as p inner join sys_role_permission as r
+        on p.id = r.pid
+        where r.rid = #{roleid}
+    </select>
+
+    <insert id="addRolePermission">
+        insert into sys_role_permission (rid,pid) values (#{rid},#{pid})
+    </insert>
+    <insert id="deleteRolePermission">
+        delete from sys_role_permission where rid =#{rid}
+        <if test="pid != null and pid !=0">
+            and pid = #{pid}
+        </if>
+    </insert>
+</mapper>

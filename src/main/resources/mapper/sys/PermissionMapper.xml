@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dy.sys.mapper.PermissionMapper">
+    <delete id="deletePermissionRoleByMenuid">
+        delete from sys_role_permission
+        where pid = #{id}  <!--菜单-->
+        or pid in (select id from sys_permission where pid = #{id}) <!--角色-->
+    </delete>
+    <delete id="deletePermissionRoleByPermissionid">
+        delete from sys_role_permission
+        where pid = #{id}
+    </delete>
+    <!--根据用户id查询权限-->
+    <select id="getPermissionStringByUserid" resultType="string">
+        select p.percode
+        from sys_permission as p inner join sys_role_permission as rp  on p.id = rp.pid
+        inner join sys_role_user as ru on ru.rid = rp.rid
+				where p.type='permission' and p.available = 1 and ru.uid = #{id}
+    </select>
+    <!--根据用户id查询权限-->
+    <select id="getMenuByUserid" resultType="com.dy.sys.entity.Permission">
+        select p.*
+        from sys_permission as p inner join sys_role_permission as rp  on p.id = rp.pid
+        inner join sys_role_user as ru on ru.rid = rp.rid
+				where p.type='menu' and p.available = 1 and ru.uid = #{id}
+    </select>
+</mapper>

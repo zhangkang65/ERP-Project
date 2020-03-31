@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:shiro="http://www.pollix.at/thymeleaf/shiro">
+<head>
+    <meta charset="UTF-8">
+    <title>退货单管理</title>
+    <link rel="icon" href="/resources/favicon.ico">
+    <link rel="stylesheet" href="/resources/layui/css/layui.css" media="all"/>
+    <link rel="stylesheet" href="/resources/css/public.css" media="all"/>
+</head>
+<body style="margin:10px;">
+<!-- 搜索条件开始 -->
+<div align="center">
+    <form class="layui-form" method="post" id="searchForm">
+        <div class="layui-form-item">
+            <div class="layui-inline">
+                <label class="layui-form-label">客户名称:</label>
+                <div class="layui-input-inline">
+                    <select name="customerid" lay-verify="required" autocomplete="off"
+                            class="layui-input" id="customerid1">
+                    </select>
+                </div>
+            </div>
+            <div class="layui-inline">
+                <label class="layui-form-label">商品名称:</label>
+                <div class="layui-input-inline">
+                    <select name="goodsid" lay-verify="required" autocomplete="off"
+                            class="layui-input" id="goodsid1">
+                    </select>
+                </div>
+            </div>
+            <div class="layui-inline">
+                <label class="layui-form-label">开始时间:</label>
+                <div class="layui-input-inline">
+                    <input type="text" name="begintime" id="begintime" autocomplete="off" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-inline">
+                <label class="layui-form-label">结束时间:</label>
+                <div class="layui-input-inline">
+                    <input type="text" name="endtime" id="endtime" autocomplete="off" class="layui-input">
+                </div>
+            </div>
+        </div>
+        
+        <div class="layui-form-item">
+            <div class="layui-inline" style="margin-left:50px;margin-top:-8px;margin-bottom: -3px">
+                <button type="button" class="layui-btn layui-btn-normal layui-btn-radius layui-icon layui-icon-search"
+                        lay-submit lay-filter="doSearch" id="doSearch">查询
+                </button>
+                <button type="reset" class="layui-btn layui-btn-warm layui-btn-radius layui-icon layui-icon-refresh">
+                    重置
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+<!-- 搜索条件结束 -->
+
+
+<!-- 数据表格开始 -->
+<table class="layui-hide" id="salesbackTable" lay-filter="salesbackTable" lay-data="{id: 'salesbackTable'}"></table>
+<!-- 行级工具条 -->
+<div id="rowToolBar" style="display: none;">
+    <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="del">删除</a>
+</div>
+<!-- 数据表格结束 -->
+
+
+
+<script src="/resources/layui/layui.js"></script>
+<script type="text/javascript">
+    var tableIns;
+    var select = "";
+    layui.use(['jquery', 'layer', 'form','laydate', 'table'], function () {
+        var $ = layui.jquery;
+        var layer = layui.layer;
+        var form = layui.form;
+        var table = layui.table;
+        var laydate = layui.laydate;
+
+        //渲染商品数据表格
+        tableIns = table.render({
+            elem: '#salesbackTable', //渲染的目标对象
+            url: '/bus/salesback/loadSalesback', //数据接口
+            title: '客户退货数据表',//数据导出来的标题
+            defaultToolbar: ['filter', 'exports', 'print'],
+            height: 'full-120',
+            cellMinWidth: 100, //设置列的最小默认宽度
+            done: function (res, curr, count) {
+                if (res.data.length == 0 && curr != 1) {
+                    tableIns.reload({
+                        page: {
+                            curr: curr - 1
+                        }
+                    })
+                }
+            },
+            totalRow: false, //开启合并行
+            page: true, //是否启用分页
+            text: {
+                none: '暂无相关数据' //默认：无数据。注：该属性为 layui 2.2.5 开始新增
+            },
+            cols: [ [ //列表数据
+                {field: 'id', title: 'ID', align: 'center', width: '50'},
+                {field: 'goodsname', title: '商品名称', align: 'center', width: '180'},
+                {field: 'customername', title: '客户名称', align: 'center', width: '170'},
+                {field: 'paytype', title: '支付类型', align: 'center', width: '100'},
+                {field: 'salesbackprice', title: '退货价格', align: 'center', width: '100'},
+                {field: 'number', title: '数量', align: 'center', width: '100'},
+                {field: 'salesbacktime', title: '退货时间', align: 'center', width: '180'},
+                {field: 'operateperson', title: '操作员', align: 'center', width: '100'},
+                {field: 'remark', title: '备注', align: 'center', width: '220'},
+                {fixed: 'right', title: '操作', toolbar: '#rowToolBar', width: '104', align: 'center'}
+            ] ]
+        });
+
+        loadCustomer(0, $("#customerid1"));
+        loadGoods(0, $("#goodsid1"));
+
+        //日期选择器
+        laydate.render({
+            elem: '#begintime'
+            ,type: 'datetime'
+        });
+        laydate.render({
+            elem: '#endtime'
+            ,type: 'datetime'
+        });
+        function loadCustomer(id, select) {
+            $.ajaxSettings.async = false;
+            //渲染部门下拉框
+            var option = "<option value=\"0\">请选择</option>";
+            $.get("/bus/customer/getCustomer", function (result) {
+                $.each(result, function (i, e) {
+                    if (e.id == id) {
+                        option += "<option selected value=" + e.id + ">" + e.customername + "</optionselect>";
+                    } else {
+                        option += "<option value=" + e.id + ">" + e.customername + "</option>";
+                    }
+                })
+            });
+            select.html(option);
+            form.render();
+            $.ajaxSettings.async = true;
+        }
+
+        function loadGoods(id, select) {
+            $.ajaxSettings.async = false;
+            //渲染部门下拉框
+            var option = "<option value=\"0\">请选择</option>";
+            $.get("/bus/goods/getGoods", function (result) {
+                $.each(result, function (i, e) {
+                    if (e.id == id) {
+                        option += "<option selected value=" + e.id + ">" + e.goodsname + "</optionselect>";
+                    } else {
+                        option += "<option value=" + e.id + ">" + e.goodsname + "</option>";
+                    }
+                })
+            });
+            select.html(option);
+            form.render();
+            $.ajaxSettings.async = true;
+        }
+        //顶部模糊查询
+        form.on("submit(doSearch)", function (data) {
+            tableIns.reload({
+                where: data.field,
+                page: {
+                    curr: 1
+                }
+            });
+            return false;
+        });
+
+        var lineData;
+        //监听行工具事件
+        table.on('tool(salesbackTable)', function (obj) {
+            lineData = obj.data; //获得当前行数据
+            var layEvent = obj.event; //获得 lay-event 对应的值（也可以是表头的 event 参数对应的值）
+            if (layEvent === 'del') { //删除
+                deleteSalesback(lineData);
+            }
+        });
+
+
+        //删除单个商品
+        function deleteSalesback(data) {
+            var url = "/bus/salesback/deleteSalesback";
+            layer.confirm('确认删除此客户退货数据吗？', function (index) {
+                $.post(url, data, function (result) {
+                    if (result.code > 0) {
+                        layer.alert(result.msg, {
+                            icon: 1
+                        });
+                        tableIns.reload();
+                    } else {
+                        layer.alert(result.msg, {
+                            icon: 0
+                        });
+                    }
+                });
+            });
+        }
+
+    });
+
+</script>
+
+</body>
+</html>

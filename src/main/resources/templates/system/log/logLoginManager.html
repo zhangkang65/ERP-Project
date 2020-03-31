@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:shiro="http://www.pollix.at/thymeleaf/shiro">
+<head>
+    <meta charset="UTF-8">
+    <title>登录日志管理</title>
+    <link rel="stylesheet" href="/resources/layui/css/layui.css" media="all" />
+    <link rel="stylesheet" href="/resources/css/public.css" media="all" />
+</head>
+<body class="childrenBody" style="margin:10px;">
+<!-- 搜索条件开始 -->
+<form class="layui-form" method="post" id="searchForm"style="margin:0 300px">
+    <div class="layui-form-item">
+        <div class="layui-inline">
+            <label class="layui-form-label">登录用户:</label>
+            <div class="layui-input-inline">
+                <input type="text" name="loginname"  autocomplete="off" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-inline">
+            <label class="layui-form-label">登录地址:</label>
+            <div class="layui-input-inline">
+                <input type="text" name="loginip"  autocomplete="off" class="layui-input">
+            </div>
+        </div>
+    </div>
+    <div class="layui-form-item">
+        <div class="layui-inline">
+            <label class="layui-form-label">开始时间:</label>
+            <div class="layui-input-inline">
+                <input type="text" class="layui-input" id="begintime" name="begintime" placeholder=" - ">
+            </div>
+        </div>
+        <div class="layui-inline">
+            <label class="layui-form-label">结束时间:</label>
+            <div class="layui-input-inline">
+                <input type="text" class="layui-input" id="endtime"  name="endtime" placeholder=" - ">
+            </div>
+        </div>
+    </div>
+    <div class="layui-form-item" style="margin-left:240px">
+        <div class="layui-inline">
+            <button type="button" class="layui-btn layui-btn-normal layui-btn-radius layui-icon layui-icon-search" lay-submit="" lay-filter="doSearch" id="doSearch">查询</button>
+            <button type="reset" class="layui-btn layui-btn-warm layui-btn-radius layui-icon layui-icon-refresh">重置</button>
+        </div>
+    </div>
+</form>
+
+
+<!-- 搜索条件结束 -->
+
+
+<!-- 数据表格开始 -->
+<div style="margin-left:195px">
+    <table class="layui-hide" id="logTable" lay-filter="logTable" lay-data="{id: 'logTable'}"></table>
+</div>
+<!--表格工具条-->
+<div style="display: none;" id="tableToolBar">
+    <button type="button" class="layui-btn layui-btn-sm layui-btn-danger" lay-event="batchDelete">
+        <i class="layui-icon">&#xe640;</i> 批量删除
+    </button>
+</div>
+<!-- 行级工具条 -->
+<div id="rowToolBar" style="display: none;">
+    <a class="layui-btn layui-btn-xs" lay-event="del">删除</a>
+</div>
+<!-- 数据表格结束 -->
+
+<script src="/resources/layui/layui.js"></script>
+<script type="text/javascript">
+    var tableIns;
+    layui.use([ 'jquery', 'layer', 'form','table','laydate'], function() {
+        var $ = layui.jquery;
+        var layer = layui.layer;
+        var form = layui.form;
+        var table = layui.table;
+        var laydate = layui.laydate;
+        //渲染数据表格
+        tableIns = table.render({
+            elem : '#logTable', //渲染的目标对象
+            url : '/sys/loglogin/loadLog', //数据接口
+            title : '日志数据表',//数据导出来的标题
+            toolbar : "#tableToolBar", //表格的工具条
+            defaultToolbar : [ 'filter','exports','print' ],
+            limit:6,
+            height : 'full-219',
+            width:'900',
+            cellMinWidth : 100, //设置列的最小默认宽度
+            done : function(res, curr, count) {
+                if(res.data.length==0&&curr!=1){
+                    tableIns.reload({
+                        page:{
+                            curr:curr-1
+                        }
+                    })
+                }
+            },
+            totalRow : false, //开启合并行
+            page : true, //是否启用分页
+            text : {
+                none : '暂无相关数据' //默认：无数据。注：该属性为 layui 2.2.5 开始新增
+            },
+            cols : [ [ //列表数据
+                {type : 'checkbox',fixed : 'left'},
+                {field:'id',title:'ID',align:'center',width:'95'},
+                {field :'loginname',title:'登录用户',align : 'center',width:'160'},
+                {field : 'loginip',title : '登录地址',align:'center',width:'240'},
+                {field : 'logintime',title : '登录时间',align : 'center',width:'250'},
+                {field : 'right',title : '操作',toolbar:'#rowToolBar',width :'100',align:'center'}
+            ] ]
+        });
+        laydate.render({
+            elem: '#begintime'
+            ,type: 'datetime'
+            ,max:1
+        });
+        laydate.render({
+            elem: '#endtime'
+            ,type: 'datetime'
+            ,max:1
+        });
+
+        //模糊查询
+        form.on("submit(doSearch)", function (data) {
+            tableIns.reload({
+                where: data.field,
+                page: {
+                    curr: 1
+                }
+            });
+            return false;
+        });
+
+        //监听头部工具栏事件
+        table.on("toolbar(logTable)",function(obj){
+            switch(obj.event){
+                case 'batchDelete':
+                    batchDeleteLog();
+                    break;
+            };
+        })
+
+        //监听行工具事件
+        table.on('tool(logTable)', function(obj){
+            var data = obj.data; //获得当前行数据
+            var layEvent = obj.event; //获得 lay-event 对应的值（也可以是表头的 event 参数对应的值）
+            if(layEvent === 'del'){ //删除
+                deleteOneLog(data);
+            }
+        });
+
+
+        //删除单个日志
+        function deleteOneLog(data){
+            var url = "/sys/loglogin/deleteSingleLog";
+            layer.confirm('确认删除这条日志吗？', function(index){
+                $.post(url,data,function(result){
+                    if(result.code>0){
+                        layer.alert(result.msg,{
+                            icon:1
+                        });
+                        tableIns.reload();
+                    }else{
+                        layer.alert(result.msg,{
+                            icon:0
+                        });
+                    }
+                });
+            });
+        }
+
+        //批量删除日志-->传logids过去-->联想复选框传一个name对应多个值
+        function batchDeleteLog(){
+            var checkStatus = table.checkStatus('logTable');
+            var data = checkStatus.data;
+            var params = "";
+            //拼接多个值但是是一个name名
+            $.each(data,function(i,e){
+                if(i==0){
+                    params+="ids="+e.id;
+                }else{
+                    params+="&ids="+e.id;
+                }
+            });
+            layer.confirm("真的要删除选中的这些日志吗?",function(){
+                $.post("/sys/loglogin/deleteBatchLog",params,function(result){
+                    if(result.code>0){
+                        layer.alert(result.msg,{
+                            icon:1
+                        });
+                    }else{
+                        layer.alert(result.msg,{
+                            icon:0
+                        });
+                    }
+                    //刷新数据表格
+                    tableIns.reload();
+                });
+            });
+        }
+    });
+
+</script>
+
+</body>
+</html>

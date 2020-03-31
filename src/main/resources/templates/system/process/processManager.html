@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:shiro="http://www.pollix.at/thymeleaf/shiro">
+<head>
+    <meta charset="UTF-8">
+    <title>流程管理</title>
+    <link rel="icon" href="/resources/favicon.ico">
+    <link rel="stylesheet" href="/resources/layui/css/layui.css" media="all" />
+    <link rel="stylesheet" href="/resources/css/public.css" media="all" />
+</head>
+<body class="childrenBody">
+<!-- 搜索条件开始 -->
+<form class="layui-form" method="post" id="searchForm"style="margin:0 50px">
+    <div class="layui-form-item">
+        <div class="layui-inline">
+            <label class="layui-form-label">部署名称:</label>
+            <div class="layui-input-inline">
+                <input type="text" name="deploymentName"  autocomplete="off" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-inline">
+            <button type="button" lay-submit="" lay-filter="doSearch" class="layui-btn layui-icon layui-icon-search" id="doSearch">查询</button>
+            <button type="reset" class="layui-btn layui-btn-warm layui-icon layui-icon-refresh">重置</button>
+            <button type="button" class="layui-btn layui-btn-normal layui-icon layui-icon-addition" id="addProcess">添加流程</button>
+            <button type="button" class="layui-btn layui-btn-danger layui-icon layui-icon-close" id="deleteBatch">批量删除</button>
+        </div>
+    </div>
+</form>
+<!-- 搜索条件结束 -->
+
+
+<!-- 数据表格开始 -->
+<div style="margin-left:30px">
+    <!--流程部署表格-->
+    <table class="layui-hide" id="deploymentTable" lay-filter="deploymentTable" lay-data="{id: 'deploymentTable'}"></table>
+    <!--流程定义表格-->
+    <table class="layui-hide" id="processDefineTable" lay-filter="processDefineTable" lay-data="{id: 'processDefineTable'}"></table>
+</div>
+<div id="rowToolBar" style="display: none;">
+    <a class="layui-btn layui-btn-xs" lay-event="viewBPMN">查看流程图</a>
+    <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="del">删除</a>
+</div>
+<!--数据表格结束-->
+
+
+<!-- 添加部署弹出层开始 -->
+<div style="display: none;padding: 20px 20px 0 20px" id="addProcessDiv" >
+    <form class="layui-form"  lay-filter="dataFrm" id="dataFrm">
+        <div class="layui-form-item">
+            <label class="layui-form-label">部署名称:</label>
+            <div class="layui-input-block">
+                <input type="text" name="deploymentName" id="deploymentName" placeholder="请输入部署名称" autocomplete="off"
+                       class="layui-input" style="width: 510px">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">选择文件:</label>
+            <div class="layui-input-block">
+                <button type="button" class="layui-btn layui-icon layui-icon-upload" id="uploadProcess">选择文件</button>
+            </div>
+        </div>
+        <div class="layui-form-item" style="margin:80px 150px 0">
+            <div class="layui-input-block">
+                <button type="button" class="layui-btn layui-btn-normal layui-btn-sm layui-icon layui-icon-release" lay-submit lay-filter="doAddProcess" id="doAddProcess">提交</button>
+                <button type="reset" class="layui-btn layui-btn-warm layui-btn-sm layui-icon layui-icon-refresh" id="dataFrmResetBtn">重置</button>
+            </div>
+        </div>
+    </form>
+</div>
+<!-- 添加部署弹出层结束 -->
+
+<!-- 查看流程图的弹出层开始 -->
+<div id="viewProcessImg" style="display: none;padding:10px 0 0">
+    <div align="center">
+        <img id="processImg"/>
+    </div>
+</div>
+<!-- 查看流程图的弹出层结束 -->
+<script src="/resources/layui/layui.js"></script>
+<script type="text/javascript">
+    var Deployment;
+    var ProcessDefine;
+    layui.use([ 'jquery', 'layer', 'form','table','upload'], function() {
+        var $ = layui.jquery;
+        var layer = layui.layer;
+        var form = layui.form;
+        var table = layui.table;
+        var upload = layui.upload;
+
+        //渲染编辑器
+        var index;
+        //渲染数据表格
+        Deployment = table.render({
+            elem : '#deploymentTable', //渲染的目标对象
+            url : '/sys/process/loadDeployment', //数据接口
+            title : '流程部署数据表',//数据导出来的标题
+            defaultToolbar : [ 'filter','exports','print' ],
+            width:'1250',
+            height : 'full-350',
+            cellMinWidth : 100, //设置列的最小默认宽度
+            done : function(res, curr, count) {
+                if(res.data.length==0&&curr!=1){
+                    tableIns.reload({
+                        page:{
+                            curr:curr-1
+                        }
+                    })
+                }
+            },
+
+            totalRow : false, //开启合并行
+            page : true, //是否启用分页
+            limit:3,
+            text : {
+                none : '暂无相关数据' //默认：无数据。注：该属性为 layui 2.2.5 开始新增
+            },
+            cols : [ [ //列表数据
+                {type : 'checkbox',fixed : 'left'},
+                {field:'id',title:'部署ID',align:'center',width:'290'},
+                {field :'name',title:'部署名称',align : 'center',width:'306'},
+                {field : 'deploymentTime',title : '部署时间',align : 'center',width:'300'},
+                {fixed : 'right',title : '操作',toolbar:'#rowToolBar',width :'300',align:'center'}
+            ] ]
+        });
+
+        ProcessDefine = table.render({
+            elem : '#processDefineTable', //渲染的目标对象
+            url : '/sys/process/loadProcessDefine', //数据接口
+            title : '流程实例数据表',//数据导出来的标题
+            defaultToolbar : [ 'filter','exports','print' ],
+            width:'1250',
+            height : 'full-310',
+            cellMinWidth : 100, //设置列的最小默认宽度
+            done : function(res, curr, count) {
+                if(res.data!=null&&res.data.length==0&&curr!=1){
+                    tableIns.reload({
+                        page:{
+                            curr:curr-1
+                        }
+                    })
+                }
+            },
+
+            totalRow : false, //开启合并行
+            page : true, //是否启用分页
+            limit:4,
+            text : {
+                none : '暂无相关数据' //默认：无数据。注：该属性为 layui 2.2.5 开始新增
+            },
+            cols : [ [ //列表数据
+                {field:'id',title:'流程定义ID',align:'center',width:'200'},
+                {field :'name',title:'定义名称',align : 'center',width:'160'},
+                {field :'key',title:'定义Key',align : 'center',width:'160'},
+                {field :'version',title:'定义版本',align : 'center',width:'150'},
+                {field :'deploymentId',title:'部署ID',align : 'center',width:'150'},
+                {field :'resourceName',title:'资源名称[bpmn]',align : 'center',width:'211'},
+                {field :'diagramResourceName',title:'资源名称[png]',align : 'center',width:'211'},
+            ] ]
+        });
+
+        //模糊查询
+        form.on("submit(doSearch)", function (data) {
+            Deployment.reload({
+                where: data.field,
+                page: {
+                    curr: 1
+                }
+            });
+            ProcessDefine.reload({
+                where: data.field,
+                page: {
+                    curr: 1
+                }
+            });
+            return false;
+        });
+
+
+        //监听行工具事件
+        table.on('tool(deploymentTable)', function(obj){
+            var data = obj.data; //获得当前行数据
+            var layEvent = obj.event; //获得 lay-event 对应的值（也可以是表头的 event 参数对应的值）
+            if(layEvent === 'del'){ //删除
+                deleteSingleDeployment(data);
+            }else if(layEvent === 'viewBPMN'){
+                openViewBPMN(data);
+            }
+        });
+
+
+        var url;
+        var mainIndex;
+        //打开查看流程图页面
+        function openViewBPMN(data){
+            mainIndex = layer.open({
+                type:1,
+                title:'查看流程图',
+                content:$("#viewProcessImg"),
+                area:['500px','500px'],
+                success:function(index){
+                    var src = "/sys/process/viewProcessImg?deploymentId="+data.id;
+                    $("#processImg").attr({ src:src, alt: "流程图" });
+                }
+            });
+        }
+        /*打开新增流程部署的弹框*/
+        function openAddProcess(data){
+            mainIndex = layer.open({
+                type:1,
+                title:'新增流程部署',
+                content:$("#addProcessDiv"),
+                area:['700px','300px'],
+                success:function(index){
+                }
+            });
+        }
+        $("#deleteBatch").click(function(){
+            batchDeleteDeployment();
+        });
+        $("#addProcess").click(function(){
+            openAddProcess();
+        });
+
+
+        //删除单个部署
+        function deleteSingleDeployment(data){
+            var url = "/sys/process/deleteSingleDeployment";
+            layer.confirm('确认删除['+data.name+']流程部署吗？', function(index){
+                var deploymentId = data.id;
+                $.post(url,{deploymentId:deploymentId},function(result){
+                    if(result.code>0){
+                        layer.alert(result.msg,{
+                            icon:1
+                        });
+                        //刷新数据表格
+                        Deployment.reload();
+                        ProcessDefine.reload();
+                    }else{
+                        layer.alert(result.msg,{
+                            icon:0
+                        });
+                    }
+                });
+            });
+        }
+
+        function batchDeleteDeployment(){
+            var checkStatus = table.checkStatus('deploymentTable');
+            var data = checkStatus.data;
+            if(data.length==0){
+                layer.msg("请选择待删除流程部署!")
+            }else{
+                var params = "";
+                $.each(data,function(i,e){
+                    if(i==0){
+                        params+="deploymentIds="+e.id;
+                    }else{
+                        params+="&deploymentIds="+e.id;
+                    }
+                });
+                layer.confirm("真的要删除选中的这些流程部署吗?",function(){
+                    $.post("/sys/process/deleteBatchDeployment",params,function(result){
+                        if(result.code>0){
+                            layer.alert(result.msg,{
+                                icon:1
+                            });
+                        }else{
+                            layer.alert(result.msg,{
+                                icon:0
+                            });
+                        }
+                        //刷新数据表格
+                        Deployment.reload();
+                        ProcessDefine.reload();
+                    });
+                });
+            }
+
+        }
+
+        /*文件上传*/
+        upload.render({
+            elem: "#uploadProcess"
+            , url: "/sys/process/addProcess"
+            , auto: false
+            , accept: 'file' //选择文件上传
+            , acceptMime: 'application/zip' //打开文件选择框默认显示压缩文件
+            , exts: 'zip' //校验类型
+            , field: 'mf'
+            , data: {  //文件上传除文件外仍然需要携带的表单参数
+                deploymentName: function () {
+                    return $("#deploymentName").val();
+                }
+            }
+            ,bindAction:'#doAddProcess' //配合auto:false,不自动执行上传,对应按钮才触发上传
+            ,done:function(data) { //配合的提交按钮完成后要执行的操作
+                layer.msg(data.msg);
+                //关闭弹窗
+                layer.close(mainIndex);
+                //刷新数据表格
+                Deployment.reload();
+                ProcessDefine.reload();
+            }
+            ,error:function(){
+                layer.msg('部署失败');
+                //关闭弹窗
+                layer.close(mainIndex);
+            }
+            })
+
+    });
+
+</script>
+
+</body>
+</html>

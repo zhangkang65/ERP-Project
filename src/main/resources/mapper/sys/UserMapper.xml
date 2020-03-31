@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dy.sys.mapper.UserMapper">
+    <select id="selectUser" resultType="com.dy.sys.vo.UserVo">
+        SELECT
+        zu.id,
+        zu.`name`,
+        zu.sex,
+        zu.hiredate,
+        zu.type,
+        zu.loginname,
+        zu.mgr,
+        zu.ordernum,
+        zu.remark,
+        zu.available,
+        zu.deptid,
+        ( SELECT title FROM sys_dept d WHERE d.id = zu.deptid ) deptname,
+        fu.NAME as leadername,
+        fu.deptid as leaderdeptid
+        FROM
+        `sys_user` AS zu
+        LEFT JOIN sys_user AS fu ON zu.mgr=fu.id
+        <where>
+            <if test="name != null and name != ''">
+                and zu.name like concat('%',#{name},'%')
+            </if>
+            <if test="deptid != null and deptid != 0">
+                and zu.deptid = #{deptid}
+            </if>
+        </where>
+        limit #{page},#{limit}
+    </select>
+    <select id="getCountByPage" resultType="long">
+        select count(1) from sys_user limit #{page},#{limit}
+    </select>
+    <delete id="deleteUserRoleByUserid">
+        delete from sys_role_user where uid = #{userid}
+    </delete>
+    <delete id="deleteBatchUserRoleIds">
+        delete from sys_role_user where uid in
+        <foreach collection="list" item="uid" open="(" close=")" separator=",">
+            #{uid}
+        </foreach>
+    </delete>
+    <select id="loadRoleByUserid" resultType="com.dy.sys.entity.Role">
+        select r.* from sys_role_user as u inner join sys_role as r
+        on r.id = u.rid where uid = #{userid}
+    </select>
+    <insert id="addUserRole">
+        insert into sys_role_user (uid,rid)
+        values
+        <foreach collection="rids" item="rid" separator=",">
+            (#{uid},#{rid})
+        </foreach>
+    </insert>
+</mapper>

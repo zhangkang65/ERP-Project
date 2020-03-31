@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+	<meta charset="utf-8">
+	<title>个人资料-Y·F</title>
+	<link rel="stylesheet" href="/resources/layui/css/layui.css"/>
+	<link rel="stylesheet" href="/resources/css/public.css"/>
+</head>
+<body class="childrenBody" style="margin-top:100px;margin-left: 250px">
+<form class="layui-form layui-row" id="userInfo" onsubmit="return false">
+	<div class="layui-col-md3 layui-col-xs12 user_right">
+		<div class="layui-upload-list">
+			<img class="layui-upload-img layui-circle userFaceBtn userAvatar" id="userFace" src="/file/downloadFile">
+			<input name="imgpath" id="imgpath"  type="text" style="display: none"/>
+		</div>
+		<button type="button" class="layui-btn layui-btn-primary userFaceBtn" id="changeImg" ><i class="layui-icon">&#xe67c;</i> 掐指一算，我要换一个头像了</button>
+	</div>
+	<div class="layui-col-md6 layui-col-xs12">
+		<div class="layui-form-item">
+			<label class="layui-form-label">用户名</label>
+			<div class="layui-input-block">
+				<input type="text" th:value="${#session.getAttribute('user').user.loginname}" name="loginname" disabled class="layui-input layui-disabled">
+			</div>
+		</div>
+		<div class="layui-form-item">
+			<label class="layui-form-label">真实姓名</label>
+			<div class="layui-input-block">
+				<input type="text" name="name" th:value="${#session.getAttribute('user').user.name}" placeholder="请输入真实姓名" lay-verify="required" class="layui-input realName">
+			</div>
+		</div>
+		<div class="layui-form-item">
+			<label class="layui-form-label">性别</label>
+			<div class="layui-input-block userSex">
+				<span th:if="${#session.getAttribute('user').user.sex==1}" >
+					<input type="radio" name="sex" value="1" title="男" checked="">
+					<input type="radio" name="sex" value="0" title="女">
+				</span>
+				<span th:if="${#session.getAttribute('user').user.sex==0}" >
+					<input type="radio" name="sex" value="1" title="男">
+					<input type="radio" name="sex" value="0" title="女" checked="">
+				</span>
+			</div>
+		</div>
+		<div class="layui-form-item">
+			<label class="layui-form-label">个人说明</label>
+			<div class="layui-input-block">
+				<textarea placeholder="请输入个人说明"  name="remark" class="layui-textarea myself" th:text="${#session.getAttribute('user').user.remark}">
+
+				</textarea>
+			</div>
+		</div>
+		<div class="layui-form-item">
+			<div class="layui-input-block">
+				<button class="layui-btn" lay-submit="" lay-filter="doChange">立即提交</button>
+				<button type="reset" class="layui-btn layui-btn-primary">重置</button>
+			</div>
+		</div>
+	</div>
+</form>
+<script type="text/javascript" src="/resources/layui/layui.js"></script>
+<script type="text/javascript">
+
+	layui.config({
+		base : "/resources/js/"
+	}).use(['form','jquery','upload'],function() {
+		var form = layui.form;
+		var $ = layui.jquery;
+		var upload = layui.upload;
+		upload.render({
+			elem: '#changeImg',
+			url: '/file/uploadFile',
+			acceptMime:'images/*', //接受的文件类型
+			field:'mf', //controller接收的字段参数
+			done: function(res, index, upload){
+				//上传完成后显示图片-->下载显示图片
+				$('#userFace').attr('src','/file/downloadFile?path='+res.data.src);
+				//给img的input框赋图片地址值
+				$('#imgpath').val(res.data.src);
+			}
+		});
+
+		/*$("#changeImg").click(function(){
+
+		});*/
+		//表单提交数据
+		form.on("submit(doChange)",function(result) {
+			//序列化表单数据
+			var formData = $("#userInfo").serialize();
+			var url = "/sys/user/updateUserInfo"
+			$.post(url,formData,function(result){
+				if(result.code>0){
+					layer.alert(result.msg, {
+						icon: 1
+					})
+				}else{
+					layer.alert(result.msg, {
+						icon: 0
+					})
+				}
+				window.parent.location.reload();
+			});
+
+		})
+	})
+</script>
+
+</body>
+</html>

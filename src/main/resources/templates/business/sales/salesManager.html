@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:shiro="http://www.pollix.at/thymeleaf/shiro">
+<head>
+    <meta charset="UTF-8">
+    <title>销售管理</title>
+    <link rel="icon" href="/resources/favicon.ico">
+    <link rel="stylesheet" href="/resources/layui/css/layui.css" media="all"/>
+    <link rel="stylesheet" href="/resources/css/public.css" media="all"/>
+</head>
+<body style="margin:10px;">
+<!-- 搜索条件开始 -->
+<div align="center">
+    <form class="layui-form" method="post" id="searchForm">
+        <div class="layui-form-item">
+            <div class="layui-inline">
+                <label class="layui-form-label">客户名称:</label>
+                <div class="layui-input-inline">
+                    <select name="customerid" lay-verify="required" autocomplete="off"
+                            class="layui-input" id="customerid1">
+                    </select>
+                </div>
+            </div>
+            <div class="layui-inline">
+                <label class="layui-form-label">商品名称:</label>
+                <div class="layui-input-inline">
+                    <select name="goodsid" lay-verify="required" autocomplete="off"
+                            class="layui-input" id="goodsid1">
+                    </select>
+                </div>
+            </div>
+            <div class="layui-inline">
+                <label class="layui-form-label">开始时间:</label>
+                <div class="layui-input-inline">
+                    <input type="text" name="begintime" id="begintime" autocomplete="off" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-inline">
+                <label class="layui-form-label">结束时间:</label>
+                <div class="layui-input-inline">
+                    <input type="text" name="endtime" id="endtime" autocomplete="off" class="layui-input">
+                </div>
+            </div>
+        </div>
+        
+        <div class="layui-form-item">
+            <div class="layui-inline" style="margin-left:50px;margin-top:-8px;margin-bottom: -3px">
+                <button type="button" class="layui-btn layui-btn-normal layui-btn-radius layui-icon layui-icon-search"
+                        lay-submit lay-filter="doSearch" id="doSearch">查询
+                </button>
+                <button type="reset" class="layui-btn layui-btn-warm layui-btn-radius layui-icon layui-icon-refresh">
+                    重置
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+<!-- 搜索条件结束 -->
+
+
+<!-- 数据表格开始 -->
+<table class="layui-hide" id="salesTable" lay-filter="salesTable" lay-data="{id: 'salesTable'}"></table>
+<!--表格工具条-->
+<div style="display: none;" id="tableToolBar">
+    <button type="button" class="layui-btn layui-btn-sm" lay-event="add">
+        <i class="layui-icon">&#xe608;</i> 销售
+    </button>
+</div>
+<!-- 行级工具条 -->
+<div id="rowToolBar" style="display: none;">
+    <a class="layui-btn layui-btn-xs" lay-event="edit">编辑</a>
+    <a class="layui-btn layui-btn-xs layui-btn-warm" lay-event="salesback">退货</a>
+    <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="del">删除</a>
+</div>
+<!-- 数据表格结束 -->
+
+<!-- 添加和修改的弹出层开始 -->
+<div style="display: none;padding:20px" id="saveOrUpdateDiv">
+    <form class="layui-form" lay-filter="dataFrm" id="dataFrm">
+        <div class="layui-form-item">
+            <label class="layui-form-label">顾客名称:</label>
+            <div class="layui-input-inline">
+                <select name="customerid" lay-verify="required" autocomplete="off"
+                        class="layui-input" id="customerid2">
+                </select>
+            </div>
+            <label class="layui-form-label">商品名称:</label>
+            <div class="layui-input-inline">
+                <select name="goodsid" lay-verify="required" autocomplete="off"
+                        class="layui-input" id="goodsid2">
+                </select>
+            </div>
+        </div>
+        <div class="layui-form-item ">
+            <label class="layui-form-label">销售数量:</label>
+            <div class="layui-input-inline">
+                <input type="text" name="number" id="salesnumber" class="layui-input" placeholder="请输入销售数量">
+                <input type="hidden" name="id">
+            </div>
+            <label class="layui-form-label">销售价格:</label>
+            <div class="layui-input-inline">
+                <input type="text" name="salesprice" id="salesprice" placeholder="请输入销售价格" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item ">
+            <label class="layui-form-label">支付类型:</label>
+            <div class="layui-input-block">
+                <input type="radio" name="paytype" value="微信" checked="checked" title="微信">
+                <input type="radio" name="paytype" value="支付宝" title="支付宝">
+                <input type="radio" name="paytype" value="银联" title="银联">
+            </div>
+        </div>
+        <div class="layui-form-item ">
+            <label class="layui-form-label">备  注:</label>
+            <div class="layui-input-block">
+                <textarea name="remark" placeholder="请输入" class="layui-textarea" style="width: 500px"></textarea>
+            </div>
+        </div>
+
+        <div class="layui-form-item" style="margin:10px 140px -15px">
+            <div class="layui-input-block">
+                <button type="button" class="layui-btn layui-btn-normal layui-btn-sm layui-icon layui-icon-release"
+                        lay-submit lay-filter="doSubmit">提交
+                </button>
+                <button type="reset" class="layui-btn layui-btn-warm layui-btn-sm layui-icon layui-icon-refresh">重置
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+<!-- 添加和修改的弹出层结束 -->
+<!--退货弹出层-->
+<div id="salesbackDiv" style="display: none;padding:20px">
+    <form class="layui-form" lay-filter="salesbackFrm" id="salesbackFrm">
+        <div class="layui-form-item ">
+            <label class="layui-form-label">退货数量:</label>
+            <div class="layui-input-inline">
+                <input type="text" name="number" id="salesbacknumber" placeholder="请输入退货数量" class="layui-input">
+            </div>
+            <label class="layui-form-label">退货金额:</label>
+            <div class="layui-input-inline">
+                <input type="text" name="salesbackprice" id="salesbackprice" placeholder="请输入退货金额" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item ">
+            <label class="layui-form-label">退货原因:</label>
+            <div class="layui-input-block">
+                <textarea name="remark" id="salesbackRemark" placeholder="请输入退货原因" class="layui-textarea" style="width: 500px"></textarea>
+            </div>
+        </div>
+        <div class="layui-form-item ">
+            <label class="layui-form-label">支付类型:</label>
+            <div class="layui-input-block">
+                <input type="radio" name="paytype" value="微信" checked="checked" title="微信">
+                <input type="radio" name="paytype" value="支付宝" title="支付宝">
+                <input type="radio" name="paytype" value="银联" title="银联">
+            </div>
+        </div>
+        <input name="number" type="hidden" id="salesnum">
+        <input name="goodsid" type="hidden"/>
+        <input name="customerid" type="hidden"/>
+        <div class="layui-form-item" style="margin:10px 140px -15px">
+            <div class="layui-input-block">
+                <button type="button" class="layui-btn layui-btn-normal layui-btn-sm layui-icon layui-icon-release"
+                        lay-submit lay-filter="doSalesback">提交
+                </button>
+                <button type="reset" class="layui-btn layui-btn-warm layui-btn-sm layui-icon layui-icon-refresh">重置
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+
+
+<script src="/resources/layui/layui.js"></script>
+<script type="text/javascript">
+    var tableIns;
+    var select = "";
+    layui.use(['jquery', 'layer', 'form','laydate', 'table'], function () {
+        var $ = layui.jquery;
+        var layer = layui.layer;
+        var form = layui.form;
+        var table = layui.table;
+        var laydate = layui.laydate;
+
+        //渲染商品数据表格
+        tableIns = table.render({
+            elem: '#salesTable', //渲染的目标对象
+            url: '/bus/sales/loadSales', //数据接口
+            title: '销售数据表',//数据导出来的标题
+            toolbar: "#tableToolBar", //表格的工具条
+            defaultToolbar: ['filter', 'salesbacks', 'print'],
+            height: 'full-120',
+            cellMinWidth: 100, //设置列的最小默认宽度
+            done: function (res, curr, count) {
+                if (res.data.length == 0 && curr != 1) {
+                    tableIns.reload({
+                        page: {
+                            curr: curr - 1
+                        }
+                    })
+                }
+            },
+            totalRow: false, //开启合并行
+            page: true, //是否启用分页
+            text: {
+                none: '暂无相关数据' //默认：无数据。注：该属性为 layui 2.2.5 开始新增
+            },
+            cols: [ [ //列表数据
+                {field: 'id', title: 'ID', align: 'center', width: '50'},
+                {field: 'goodsname', title: '商品名称', align: 'center', width: '180'},
+                {field: 'customername', title: '客户名称', align: 'center', width: '170'},
+                {field: 'paytype', title: '支付类型', align: 'center', width: '100'},
+                {field: 'salesprice', title: '销售价格', align: 'center', width: '100'},
+                {field: 'number', title: '数量', align: 'center', width: '100'},
+                {field: 'salestime', title: '销售时间', align: 'center', width: '180'},
+                {field: 'operateperson', title: '操作员', align: 'center', width: '80'},
+                {field: 'remark', title: '备注', align: 'center', width: '200'},
+                {fixed: 'right', title: '操作', toolbar: '#rowToolBar', width: '200', align: 'center'}
+            ] ]
+        });
+
+        loadCustomer(0, $("#customerid1"));
+        loadGoods(0, $("#goodsid1"));
+
+        //日期选择器
+        laydate.render({
+            elem: '#begintime'
+            ,type: 'datetime'
+        });
+        laydate.render({
+            elem: '#endtime'
+            ,type: 'datetime'
+        });
+        function loadCustomer(id, select) {
+            $.ajaxSettings.async = false;
+            //渲染部门下拉框
+            var option = "<option value=\"0\">请选择</option>";
+            $.get("/bus/customer/getCustomer", function (result) {
+                $.each(result, function (i, e) {
+                    if (e.id == id) {
+                        option += "<option selected value=" + e.id + ">" + e.customername + "</optionselect>";
+                    } else {
+                        option += "<option value=" + e.id + ">" + e.customername + "</option>";
+                    }
+                })
+            });
+            select.html(option);
+            form.render();
+            $.ajaxSettings.async = true;
+        }
+
+        function loadGoods(id, select) {
+            $.ajaxSettings.async = false;
+            //渲染部门下拉框
+            var option = "<option value=\"0\">请选择</option>";
+            $.get("/bus/goods/getGoods", function (result) {
+                $.each(result, function (i, e) {
+                    if (e.id == id) {
+                        option += "<option selected value=" + e.id + ">" + e.goodsname + "</optionselect>";
+                    } else {
+                        option += "<option value=" + e.id + ">" + e.goodsname + "</option>";
+                    }
+                })
+            });
+            select.html(option);
+            form.render();
+            $.ajaxSettings.async = true;
+        }
+        //顶部模糊查询
+        form.on("submit(doSearch)", function (data) {
+            tableIns.reload({
+                where: data.field,
+                page: {
+                    curr: 1
+                }
+            });
+            return false;
+        });
+
+        //监听头部工具栏事件
+        table.on("toolbar(salesTable)", function (obj) {
+            switch (obj.event) {
+                case 'add':
+                    openAddSales();
+                    break;
+            }
+            ;
+        })
+        var lineData;
+        //监听行工具事件
+        table.on('tool(salesTable)', function (obj) {
+            lineData = obj.data; //获得当前行数据
+            var layEvent = obj.event; //获得 lay-event 对应的值（也可以是表头的 event 参数对应的值）
+            if (layEvent === 'del') { //删除
+                deleteInport(lineData);
+            } else if (layEvent === 'edit') { //编辑
+                openUpdateInport(lineData);
+            }else if(layEvent === 'salesback'){
+                openSalesback(lineData);
+            }
+        });
+        var url;
+        var mainIndex;
+
+        //打开添加页面
+        function openAddSales() {
+            mainIndex = layer.open({
+                type: 1,
+                title: '添加商品',
+                content: $("#saveOrUpdateDiv"),
+                area: ['700px', '380px'],
+                success: function (index) {
+                    //清空修改页面使用过的表单数据
+                    $("#dataFrm")[0].reset();
+                    //为弹框中表单提交传递提交地址
+                    url = "/bus/sales/addSales"
+                    loadCustomer(0, $("#customerid2"));
+                    loadGoods(0,$("#goodsid2"));
+                    salesCheck();
+                }
+            });
+        }
+
+
+        //打开修改页面
+        function openUpdateInport(data) {
+            mainIndex = layer.open({
+                type: 1,
+                title: '修改商品',
+                content: $("#saveOrUpdateDiv"),
+                area: ['700px', '400x'],
+                success: function (index) {
+                    form.val("dataFrm", data);
+                    url = "/bus/sales/updateSales";
+                    //加载下拉框
+                    loadCustomer(data.customerid, $("#customerid2"));
+                    loadGoods(data.goodsid, $("#goodsid2"));
+                    //渲染图片
+                }
+            });
+        }
+
+        function salesCheck(){
+            $("#salesnumber").blur(function(){
+                var goodsid =$("#goodsid2").val();
+                var url = "/bus/goods/getGoodsById?id="+goodsid;
+                $.get(url,function(result){
+                    var goodsnum = result.number;
+                    var salesnum = $("#salesnumber").val();
+                    var goodsprice = result.price;
+                    if(parseInt(salesnum)>parseInt(goodsnum)){
+                        layer.msg("该商品数量不足");
+                    }else{
+                        var salesprice = salesnum*goodsprice;
+                        $("#salesprice").val(salesprice);
+                    }
+                });
+            });
+        }
+
+        //表单提交数据
+        form.on("submit(doSubmit)", function (result) {
+            //序列化表单数据
+            var formData = $("#dataFrm").serialize();
+            $.post(url, formData, function (result) {
+                //弹出操作情况数据msg-->封装数据处理请求返回的信息
+                var code = result.code;
+                var msg = result.msg;
+                if (code > 0) {
+                    layer.close(mainIndex);
+                    layer.alert(msg, {
+                        icon: 1
+                    })
+                    tableIns.reload();
+                } else {
+                    layer.alert(msg, {
+                        icon: 0
+                    })
+                }
+            })
+        })
+
+        //删除单个商品
+        function deleteInport(data) {
+            var url = "/bus/sales/deleteSales";
+            layer.confirm('确认删除此销售数据吗？', function (index) {
+                $.post(url, data, function (result) {
+                    if (result.code > 0) {
+                        layer.alert(result.msg, {
+                            icon: 1
+                        });
+                        tableIns.reload();
+                    } else {
+                        layer.alert(result.msg, {
+                            icon: 0
+                        });
+                    }
+                });
+            });
+        }
+        //打开退货页面
+        function openSalesback(data){
+            mainIndex=layer.open({
+                type:1,
+                title:'商品退货',
+                content:$("#salesbackDiv"),
+                area:['700px','350px'],
+                success:function(index){
+                    form.val("salesbackFrm", data);
+                    $("#salesbackRemark").val("");
+                }
+            });
+        }
+        $("#salesbacknumber").blur(function(){
+            var salesbacknumber = $("#salesbacknumber").val();
+            var salesnum = $("#salesnum").val();
+            if(parseInt(salesbacknumber)>parseInt(salesnum)){
+                layer.alert("退货数量不得多于实际销售数量!", {
+                    icon: 0
+                })
+            }else{
+                var price = $("#salesprice").val();
+                var number = $("#salesbacknumber").val();
+                var salesbackprice = price*number;
+                $("#salesbackprice").val(salesbackprice);
+            }
+        });
+
+        //退货提交数据
+        form.on("submit(doSalesback)", function (result) {
+            var salesbacknumber = $("#salesbacknumber").val();
+            var goodsnum = $("#goodsnum").val();
+            if(parseInt(salesbacknumber)>parseInt(goodsnum)){
+                layer.alert("退货数量不得多于实际销售数量,请重新填写!", {
+                    icon: 0
+                })
+            }else{
+                //序列化表单数据
+                var formData = $("#salesbackFrm").serialize();
+                $.post("/bus/salesback/addSalesback", formData, function (result) {
+                    //弹出操作情况数据msg-->封装数据处理请求返回的信息
+                    var code = result.code;
+                    var msg = result.msg;
+                    if (code > 0) {
+                        layer.close(mainIndex);
+                        layer.alert(msg, {
+                            icon: 1
+                        })
+                        tableIns.reload();
+                    } else {
+                        layer.alert(msg, {
+                            icon: 0
+                        })
+                    }
+                })
+            }
+
+        })
+
+    });
+
+</script>
+
+</body>
+</html>

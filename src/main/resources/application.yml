@@ -1,0 +1,68 @@
+#端口
+server:
+  port: 8080
+#数据源
+spring:
+  datasource:
+    druid:
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      jdbc-url: jdbc:mysql://127.0.0.1:3306/erp?useUnicode=true&characterEncoding=utf8&useSSL=true&serverTimezone=UTC
+      username: root
+      password: admin
+      initial-size: 5
+      min-idle: 5
+      validation-query: select 1
+      #监控配置
+      stat-view-servlet:
+        enabled: true
+        login-username: admin
+        login-password: admin
+        allow:
+        deny:
+        url-pattern: "/druid/*"
+  thymeleaf:
+    cache: false
+  #Date->JSON
+  jackson:
+    date-format: "yyyy-MM-dd HH:mm:ss"
+    time-zone: "GMT+8"
+  #JSON->Date
+  mvc:
+    date-format: "yyyy-MM-dd HH:mm:ss"
+  multipart:
+    default-encoding: UTF-8
+    max-upload-size: 20971520
+    max-memory-size: 1048576
+  activiti:
+    database-schema-update: true
+    process-definition-location-prefix: "classpath*:/processes/*.bpmn"
+    history-level: full
+    db-history-used: true
+    async-executor-activate: false
+
+
+#myBatisPlus配置
+mybatis-plus:
+  mapper-locations:
+    - classpath:mapper/*/*Mapper.xml
+  global-config:
+    db-config:
+      id-type: auto
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+#shiro配置
+shiro:
+  hash-algorithm-name: md5
+  hash-iterations: 2
+  login-url: /index.html
+  unauthorized-url: /unauthorized.html
+  anon-urls:
+    - /resources/**
+    - /index.html*
+    - /login.html*
+    - /login/toLogin*
+    - /login/login*
+    - /login/getValidation*
+  logout-url: /login/logout*
+  auth-urls:
+    - /**
